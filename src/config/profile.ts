@@ -17,10 +17,6 @@ export const profile = {
   github: "https://github.com/ravi-on-cloud",
   linkedin: "https://www.linkedin.com/in/ravipatelpmp/",
   resumeUrl: "",
-  contact: {
-    // Replace with your Formspree endpoint or leave empty to disable
-    formspreeAction: "https://formspree.io/f/your_form_id",
-  },
   seo: {
     title: "Ravi Patel — Cloud Engineer",
     description:

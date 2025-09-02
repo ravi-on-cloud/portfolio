@@ -1,55 +1,42 @@
 ---
-import { profile } from "../config/profile";
 import ProfileCard from "../React/ProfileCard.tsx";
 ---
 
 <section id="contact" class="w-full py-12 border-t border-[#ffffff10]">
   <div class="max-w-5xl mx-auto">
     <h2 class="text-lg text-[var(--sec)] mb-2 shiny-sec">Let's talk</h2>
-    <h3 class="text-4xl md:text-5xl font-medium text-[var(--white)] mb-6">
-      Contact
-    </h3>
+    <h3 class="text-4xl md:text-5xl font-medium text-[var(--white)] mb-6">Contact</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div class="text-[var(--white-icon)]">
         <ProfileCard client:load />
       </div>
 
-      <div class="flex flex-col gap-4">
-        <p class="text-[var(--white-icon)]">
-          Prefer email? Reach me at
-          <a class="text-[var(--sec)] underline" href={`mailto:${profile.email}`}>
-            {profile.email}
-          </a>
-          , or connect via the links below.
-        </p>
-        <div class="flex gap-3">
-          <a
-            href={`mailto:${profile.email}`}
-            class="px-4 py-2 bg-[var(--white-icon-tr)] text-[var(--white)] rounded-lg border border-[var(--white-icon-tr)] hover:opacity-100 hover:bg-[var(--white-icon-tr)]"
-          >
-            Email Me
-          </a>
-          <a
-            href={profile.linkedin}
-            target="_blank"
-            rel="noreferrer noopener"
-            class="px-4 py-2 bg-[#1414149c] text-[var(--white)] rounded-lg border border-[var(--white-icon-tr)] hover:opacity-100"
-          >
-            LinkedIn
-          </a>
-          <a
-            href={profile.github}
-            target="_blank"
-            rel="noreferrer noopener"
-            class="px-4 py-2 bg-[#1414149c] text-[var(--white)] rounded-lg border border-[var(--white-icon-tr)] hover:opacity-100"
-          >
-            GitHub
-          </a>
+      <div class="w-full">
+        <img
+          src="/cloud.jpg"
+          alt="Cloud"
+          class="w-full h-auto rounded-lg border border-[var(--white-icon-tr)] object-cover"
+          loading="lazy"
+        />
+        <div class="grid grid-cols-1 gap-3 w-full max-w-xs py-6 mx-auto">
+          <div class="flex items-center justify-center space-x-3">
+            <span class="text-[var(--white-icon)] text-sm">Built with</span>
+            <img src="/svg/astro.svg" alt="Astro Logo" class="h-5 w-5 object-contain filter brightness-0 invert opacity-50" loading="lazy" />
+            <span class="text-[var(--white-icon)] text-sm">Astro</span>
+          </div>
+          <div class="flex items-center justify-center space-x-3">
+            <span class="text-[var(--white-icon)] text-sm">Styled with</span>
+            <img src="/svg/tailwindcss.svg" alt="TailwindCSS Logo" class="h-5 w-5 object-contain filter brightness-0 invert opacity-50" loading="lazy" />
+            <span class="text-[var(--white-icon)] text-sm">TailwindCSS</span>
+          </div>
+          <div class="flex items-center justify-center space-x-3">
+            <span class="text-[var(--white-icon)] text-sm">Deployed on</span>
+            <img src="/svg/vercel.svg" alt="Vercel Logo" class="h-5 w-5 object-contain filter brightness-0 invert opacity-50" loading="lazy" />
+            <span class="text-[var(--white-icon)] text-sm">Vercel</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
-
-<!-- Contact form and script removed as requested. -->
 
