@@ -1,20 +1,19 @@
 ---
 const technologies = [
-  "astro",
-  "vue",
-  "react",
-  "typeScript",
-  "tailwindcss",
-  "next",
-  "nodejs",
-  "HTML5",
-  "CSS3",
-  "javaScript",
-  "git",
-  "supabase",
-  "mysql",
+  "terraform",
+  "kubernetes",
+  "docker",
+  "azure",
+  "azure-devops",
+  "github-actions",
   "bash",
+  "aws",
+  "git",
+  "linux",
+  "jenkins",
 ];
+
+const whiteOnlyIcons = ["bash", "aws"]; // use higher opacity for white-only marks
 ---
 
 <div class="relative overflow-x-hidden py-8">
@@ -34,7 +33,7 @@ const technologies = [
           <img
             src={`/svg/${tech}.svg`}
             alt={tech}
-            class="h-7 w-auto object-contain transition-transform group-hover:scale-110 opacity-60"
+            class={`h-7 w-auto object-contain transition-transform group-hover:scale-110 ${whiteOnlyIcons.includes(tech) ? "opacity-90" : "opacity-60"}`}
             width="30"
             height="30"
             loading="lazy"

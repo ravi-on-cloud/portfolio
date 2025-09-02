@@ -1,3 +1,8 @@
+---
+import { profile } from "../config/profile";
+import ProfileCard from "../React/ProfileCard.tsx";
+---
+
 <section id="contact" class="w-full py-12 border-t border-[#ffffff10]">
   <div class="max-w-5xl mx-auto">
     <h2 class="text-lg text-[var(--sec)] mb-2 shiny-sec">Let's talk</h2>
@@ -6,19 +11,13 @@
     </h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
       <div class="text-[var(--white-icon)]">
-        <p class="mb-4">
-          Have a question or a project in mind? Feel free to reach out.
-        </p>
-        <div class="flex items-center gap-2">
-          <span>Location:</span>
-          <span class="text-[var(--white)]">Colombia, Valle del cauca</span>
-        </div>
+        <ProfileCard client:load />
       </div>
 
       <div>
         <form
           id="contact-form"
-          action="https://formspree.io/f/mnnjznkj"
+          action={profile.contact.formspreeAction}
           method="POST"
           class="flex flex-col gap-4"
         >
