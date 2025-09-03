@@ -14,6 +14,7 @@ const ProfileCard: React.FC = () => {
   useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current); }, []);
 
   const deviceTiltActive = useRef(false);
+  const [motionStatus, setMotionStatus] = useState<"idle" | "granted" | "denied" | "unsupported">("idle");
 
   const pointerMove = (clientX: number, clientY: number) => {
     const el = ref.current;
@@ -57,12 +58,14 @@ const ProfileCard: React.FC = () => {
     });
   };
 
-  // Optional: enable gyro tilt on mobile after user interaction
+  // Device orientation: attach listener when granted
   useEffect(() => {
+    if (motionStatus !== "granted") return;
+    deviceTiltActive.current = true;
     const handler = (e: DeviceOrientationEvent) => {
       if (!deviceTiltActive.current) return;
-      const beta = (e.beta ?? 0); // x-axis tilt (-180, 180)
-      const gamma = (e.gamma ?? 0); // y-axis tilt (-90, 90)
+      const beta = e.beta ?? 0; // x-axis tilt
+      const gamma = e.gamma ?? 0; // y-axis tilt
       const rotX = clamp(-beta / 3, -18, 18);
       const rotY = clamp(gamma / 2, -22, 22);
       const px = clamp((gamma + 90) / 180, 0, 1);
@@ -79,36 +82,32 @@ const ProfileCard: React.FC = () => {
         setTilt({ rx: rotX, ry: rotY, mag });
       });
     };
-
-    const enableGyro = async () => {
-      try {
-        // iOS permission prompt
-        const anyDOE = (DeviceOrientationEvent as any);
-        if (anyDOE && typeof anyDOE.requestPermission === "function") {
-          const res = await anyDOE.requestPermission();
-          if (res !== "granted") return;
-        }
-        deviceTiltActive.current = true;
-        window.addEventListener("deviceorientation", handler, true);
-      } catch {
-        // ignore
-      }
-    };
-
-    // start gyro after first touch/click
-    const target = ref.current;
-    if (!target) return;
-    const start = () => enableGyro();
-    target.addEventListener("touchstart", start, { passive: true });
-    target.addEventListener("click", start, { passive: true } as any);
+    window.addEventListener("deviceorientation", handler, true);
     return () => {
       window.removeEventListener("deviceorientation", handler, true);
-      if (target) {
-        target.removeEventListener("touchstart", start as any);
-        target.removeEventListener("click", start as any);
-      }
+      deviceTiltActive.current = false;
     };
-  }, []);
+  }, [motionStatus]);
+
+  const requestMotion = async () => {
+    try {
+      const anyDOE: any = (window as any).DeviceOrientationEvent;
+      if (!anyDOE) {
+        setMotionStatus("unsupported");
+        return;
+      }
+      if (typeof anyDOE.requestPermission === "function") {
+        const res = await anyDOE.requestPermission();
+        if (res === "granted") setMotionStatus("granted");
+        else setMotionStatus("denied");
+      } else {
+        // No explicit permission flow (Android/older iOS)
+        setMotionStatus("granted");
+      }
+    } catch {
+      setMotionStatus("denied");
+    }
+  };
 
   const githubHandle = useMemo(() => {
     try {
@@ -193,6 +192,19 @@ const ProfileCard: React.FC = () => {
             className="relative rounded-[22px] border border-[var(--white-icon-tr)] bg-[#0f0f10]/75 backdrop-blur-xl overflow-hidden min-h-[440px] md:min-h-[480px]"
             style={{ transform: "translateZ(6px)", boxShadow: combined }}
           >
+            {/* Motion permission prompt (mobile tilt) */}
+            {motionStatus !== "granted" && (
+              <button
+                type="button"
+                onClick={requestMotion}
+                className="absolute right-3 top-3 z-[3] text-xs px-2 py-1 rounded-md border border-white/20 bg-white/10 text-white/80 hover:bg-white/20"
+                aria-label="Enable motion for tilt"
+                title={motionStatus === "denied" ? "Motion denied: tap to retry. You may need to enable it in browser settings." : motionStatus === "unsupported" ? "Motion not supported on this device" : "Enable motion tilt"}
+                disabled={motionStatus === "unsupported"}
+              >
+                {motionStatus === "denied" ? "Motion blocked" : motionStatus === "unsupported" ? "No motion" : "Enable Motion"}
+              </button>
+            )}
             {/* Shine sweep */}
             <div
               aria-hidden
