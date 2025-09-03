@@ -7,7 +7,8 @@ type GlitterBackgroundProps = {
   sizeScale?: number; // particle size multiplier
   opacity?: number; // canvas overall opacity 0..1
   showBackdrop?: boolean; // soft radial glows behind glitter
-  blendMode?: GlobalCompositeOperation; // e.g., 'screen' | 'lighter'
+  cssBlend?: React.CSSProperties["mixBlendMode"]; // CSS mix-blend-mode value
+  canvasBlend?: GlobalCompositeOperation; // Canvas composite operation
 };
 
 const prefersReducedMotion = () =>
@@ -27,7 +28,8 @@ const GlitterBackground: React.FC<GlitterBackgroundProps> = ({
   sizeScale = 1,
   opacity = 0.95,
   showBackdrop = true,
-  blendMode = "screen",
+  cssBlend = "screen",
+  canvasBlend = "lighter",
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -105,7 +107,7 @@ const GlitterBackground: React.FC<GlitterBackgroundProps> = ({
           const c = colors[i % colors.length];
           g.addColorStop(0, `${c}22`);
           g.addColorStop(1, "#00000000");
-          ctx.globalCompositeOperation = blendMode;
+          ctx.globalCompositeOperation = canvasBlend;
           ctx.fillStyle = g;
           ctx.beginPath();
           ctx.arc(cx, cy, rad, 0, Math.PI * 2);
@@ -114,7 +116,7 @@ const GlitterBackground: React.FC<GlitterBackgroundProps> = ({
       }
 
       // glitter particles
-      ctx.globalCompositeOperation = blendMode;
+      ctx.globalCompositeOperation = canvasBlend;
       for (const p of particles) {
         const a = p.baseA + p.amp * (rm ? 0.2 : 0.8) * (0.5 + 0.5 * Math.sin(t * p.freq * 0.003 + p.phase));
         ctx.fillStyle = `hsla(${p.hue}, 90%, 70%, ${a})`;
@@ -153,7 +155,7 @@ const GlitterBackground: React.FC<GlitterBackgroundProps> = ({
         pointerEvents: "none",
         zIndex: 0,
         opacity,
-        mixBlendMode: blendMode,
+        mixBlendMode: cssBlend,
       }}
       aria-hidden
     />
