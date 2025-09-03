@@ -160,7 +160,7 @@ const ProfileCard: React.FC = () => {
         const combined = `${glowR}, ${glowO}, ${glowY}, ${glowG}, ${glowC}, ${glowB}, ${glowP}, ${shadow}`;
         return (
           <div
-            className="relative rounded-[22px] border border-[var(--white-icon-tr)] bg-[#0f0f10]/75 backdrop-blur-xl overflow-hidden min-h-[440px] md:min-h-[480px]"
+            className="relative rounded-[22px] border border-[var(--white-icon-tr)] bg-[var(--component-bg)] backdrop-blur-xl overflow-hidden min-h-[440px] md:min-h-[480px]"
             style={{ transform: "translateZ(6px)", boxShadow: combined }}
           >
             {/* Glitter removed per request */}
