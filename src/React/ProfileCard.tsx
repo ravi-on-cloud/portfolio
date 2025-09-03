@@ -7,16 +7,20 @@ const ProfileCard: React.FC = () => {
   const ref = useRef<HTMLDivElement | null>(null);
   const [transform, setTransform] = useState<string>("perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0)");
   const [glare, setGlare] = useState<{ x: number; y: number; o: number }>({ x: 50, y: 50, o: 0 });
+  const [parallax, setParallax] = useState<{ sx: number; sy: number; mx: number; my: number }>({ sx: 0, sy: 0, mx: 0, my: 0 });
+  const [tilt, setTilt] = useState<{ rx: number; ry: number; mag: number }>({ rx: 0, ry: 0, mag: 0 });
   const raf = useRef<number | null>(null);
 
   useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current); }, []);
 
-  const onMove = (e: React.MouseEvent) => {
+  const deviceTiltActive = useRef(false);
+
+  const pointerMove = (clientX: number, clientY: number) => {
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width; // 0..1
-    const py = (e.clientY - rect.top) / rect.height; // 0..1
+    const px = (clientX - rect.left) / rect.width; // 0..1
+    const py = (clientY - rect.top) / rect.height; // 0..1
     const rotY = clamp((px - 0.5) * 22, -22, 22); // left-right
     const rotX = clamp((0.5 - py) * 18, -18, 18); // up-down
     const z = 14;
@@ -24,7 +28,23 @@ const ProfileCard: React.FC = () => {
     raf.current = requestAnimationFrame(() => {
       setTransform(`perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(${z}px)`);
       setGlare({ x: px * 100, y: py * 100, o: 0.18 });
+      const dx = px - 0.5;
+      const dy = py - 0.5;
+      setParallax({ sx: -dx * 6, sy: -dy * 6, mx: -dx * 10, my: -dy * 10 });
+      const mag = Math.min(1, Math.hypot(rotX / 18, rotY / 22));
+      setTilt({ rx: rotX, ry: rotY, mag });
     });
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (deviceTiltActive.current) return; // ignore while gyro controls
+    pointerMove(e.clientX, e.clientY);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (deviceTiltActive.current) return;
+    const t = e.touches[0];
+    if (t) pointerMove(t.clientX, t.clientY);
   };
 
   const onLeave = () => {
@@ -32,8 +52,63 @@ const ProfileCard: React.FC = () => {
     raf.current = requestAnimationFrame(() => {
       setTransform("perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0)");
       setGlare((g) => ({ ...g, o: 0 }));
+      setParallax({ sx: 0, sy: 0, mx: 0, my: 0 });
+      setTilt({ rx: 0, ry: 0, mag: 0 });
     });
   };
+
+  // Optional: enable gyro tilt on mobile after user interaction
+  useEffect(() => {
+    const handler = (e: DeviceOrientationEvent) => {
+      if (!deviceTiltActive.current) return;
+      const beta = (e.beta ?? 0); // x-axis tilt (-180, 180)
+      const gamma = (e.gamma ?? 0); // y-axis tilt (-90, 90)
+      const rotX = clamp(-beta / 3, -18, 18);
+      const rotY = clamp(gamma / 2, -22, 22);
+      const px = clamp((gamma + 90) / 180, 0, 1);
+      const py = clamp((beta + 90) / 180, 0, 1);
+      const z = 14;
+      if (raf.current) cancelAnimationFrame(raf.current);
+      raf.current = requestAnimationFrame(() => {
+        setTransform(`perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateZ(${z}px)`);
+        setGlare({ x: px * 100, y: py * 100, o: 0.22 });
+        const dx = px - 0.5;
+        const dy = py - 0.5;
+        setParallax({ sx: -dx * 6, sy: -dy * 6, mx: -dx * 10, my: -dy * 10 });
+        const mag = Math.min(1, Math.hypot(rotX / 18, rotY / 22));
+        setTilt({ rx: rotX, ry: rotY, mag });
+      });
+    };
+
+    const enableGyro = async () => {
+      try {
+        // iOS permission prompt
+        const anyDOE = (DeviceOrientationEvent as any);
+        if (anyDOE && typeof anyDOE.requestPermission === "function") {
+          const res = await anyDOE.requestPermission();
+          if (res !== "granted") return;
+        }
+        deviceTiltActive.current = true;
+        window.addEventListener("deviceorientation", handler, true);
+      } catch {
+        // ignore
+      }
+    };
+
+    // start gyro after first touch/click
+    const target = ref.current;
+    if (!target) return;
+    const start = () => enableGyro();
+    target.addEventListener("touchstart", start, { passive: true });
+    target.addEventListener("click", start, { passive: true } as any);
+    return () => {
+      window.removeEventListener("deviceorientation", handler, true);
+      if (target) {
+        target.removeEventListener("touchstart", start as any);
+        target.removeEventListener("click", start as any);
+      }
+    };
+  }, []);
 
   const githubHandle = useMemo(() => {
     try {
@@ -48,9 +123,10 @@ const ProfileCard: React.FC = () => {
   return (
     <div
       ref={ref}
-      onMouseMove={onMove}
+      onPointerMove={onPointerMove}
+      onTouchMove={onTouchMove}
       onMouseLeave={onLeave}
-      className="w-full max-w-[340px] mx-auto rounded-3xl relative p-[2px]"
+      className="group w-full max-w-[340px] mx-auto rounded-3xl relative p-[2px]"
       style={{
         transform,
         transition: "transform 200ms cubic-bezier(0.2, 0.65, 0.3, 1)",
@@ -58,6 +134,31 @@ const ProfileCard: React.FC = () => {
         willChange: "transform",
       }}
     >
+      {/* Animated gradient border ring */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-[24px]"
+        style={{
+          padding: "2px",
+          background:
+            "conic-gradient(from 0deg at 50% 50%, rgba(169,255,91,0.55), rgba(74,144,226,0.55), rgba(169,255,91,0.55))",
+          WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+          WebkitMaskComposite: "xor" as any,
+          maskComposite: "exclude" as any,
+          animation: "spin 6s linear infinite",
+          opacity: 0.35,
+        }}
+      />
+      {/* Outer glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-6 rounded-[28px]"
+        style={{
+          background:
+            "radial-gradient(60% 60% at 50% 50%, rgba(169,255,91,0.25) 0%, rgba(74,144,226,0.18) 35%, rgba(0,0,0,0) 70%)",
+          filter: "blur(28px)",
+        }}
+      />
       {/* Gradient frame */}
       <div aria-hidden className="absolute inset-0 rounded-3xl"
            style={{ background: "linear-gradient(135deg, rgba(30,120,180,0.8), rgba(65,95,180,0.35) 45%, rgba(255,255,255,0.12))",
@@ -76,17 +177,41 @@ const ProfileCard: React.FC = () => {
       />
 
       {/* Card body with subtle glass and border */}
-      <div className="relative rounded-[22px] border border-[var(--white-icon-tr)] bg-[#0f0f10]/75 backdrop-blur-xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.45)] min-h-[440px] md:min-h-[480px]" style={{ transform: "translateZ(6px)" }}>
-        {/* Background blobs for depth */}
-        <div aria-hidden className="absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-30" style={{ background: "radial-gradient(circle at 30% 30%, #2aa9e0, transparent 60%)" }} />
-        <div aria-hidden className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full blur-3xl opacity-15" style={{ background: "radial-gradient(circle at 70% 70%, #1f2b6d, transparent 60%)" }} />
-
-      <div className="pt-6 px-6 text-center" style={{ transform: "translateZ(22px)" }}>
+      {(() => {
+        const ox = tilt.ry * 1.2; // horizontal offset follows Y-rotation
+        const oy = -tilt.rx * 1.2; // vertical offset opposite X-rotation
+        const blur = 30 + 40 * tilt.mag;
+        const darkAlpha = 0.45 + 0.25 * tilt.mag;
+        const glowGBlur = 24 + 36 * tilt.mag;
+        const glowBBlur = 20 + 44 * tilt.mag;
+        const shadow = `${ox}px ${oy}px ${blur}px rgba(0,0,0,${darkAlpha})`;
+        const glowG = `0 0 ${glowGBlur}px rgba(169,255,91,${0.12 + 0.20 * tilt.mag})`;
+        const glowB = `0 0 ${glowBBlur}px rgba(74,144,226,${0.10 + 0.16 * tilt.mag})`;
+        const combined = `${glowG}, ${glowB}, ${shadow}`;
+        return (
+          <div
+            className="relative rounded-[22px] border border-[var(--white-icon-tr)] bg-[#0f0f10]/75 backdrop-blur-xl overflow-hidden min-h-[440px] md:min-h-[480px]"
+            style={{ transform: "translateZ(6px)", boxShadow: combined }}
+          >
+            {/* Shine sweep */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-1 rotate-12 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-700 ease-out -translate-x-[150%] group-hover:translate-x-[150%]"
+              style={{
+                background:
+                  "linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.22) 50%, transparent 80%)",
+              }}
+            />
+            {/* Background blobs for depth */}
+            <div aria-hidden className="absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-30" style={{ background: "radial-gradient(circle at 30% 30%, #2aa9e0, transparent 60%)" }} />
+            <div aria-hidden className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full blur-3xl opacity-15" style={{ background: "radial-gradient(circle at 70% 70%, #1f2b6d, transparent 60%)" }} />
+      
+      <div className="pt-6 px-6 text-center" style={{ transform: `translateZ(22px) translate3d(${parallax.sx}px, ${parallax.sy}px, 0)` }}>
         <h3 className="text-2xl md:text-3xl font-semibold text-[var(--white)] drop-shadow-sm">{profile.name}</h3>
         <p className="text-sm md:text-base text-[var(--white-icon)] mt-1">{profile.role}</p>
       </div>
-
-      <div className="px-0 pt-3 pb-0 flex flex-col items-center text-center" style={{ transform: "translateZ(25px)" }}>
+      
+      <div className="px-0 pt-3 pb-0 flex flex-col items-center text-center" style={{ transform: `translateZ(25px) translate3d(${parallax.mx}px, ${parallax.my}px, 0)` }}>
         <img
           src={profile.photoUrl || "/favicon.png"}
           onError={(e) => {
@@ -96,15 +221,13 @@ const ProfileCard: React.FC = () => {
           alt={`${profile.name} avatar`}
           className="block w-full h-72 md:h-80 object-cover grayscale contrast-110"
           loading="lazy"
-          style={{ boxShadow: "0 12px 30px rgba(0,0,0,0.4)", transform: "translateZ(10px)" }}
+          style={{ boxShadow: "0 12px 30px rgba(0,0,0,0.4)", transform: `translateZ(10px) translate3d(${parallax.mx}px, ${parallax.my}px, 0)` }}
         />
         <div className="sr-only">{profile.name} - {profile.role}</div>
       </div>
-
-      {/* Intentionally no tagline/location to match minimal example */}
-
+      
       <div className="absolute left-1/2 -translate-x-1/2 bottom-2 w-[90%] md:w-[84%] z-[2]">
-        <div className="transform-gpu" style={{ transform: "translateZ(18px)" }}>
+        <div className="transform-gpu" style={{ transform: `translateZ(18px) translate3d(${parallax.sx}px, ${parallax.sy}px, 0)` }}>
           <div className="w-full bg-white/12 border border-white/15 backdrop-blur-2xl backdrop-saturate-0 backdrop-brightness-110 rounded-xl px-3 py-2 grid grid-cols-3 place-items-center gap-2 shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
             <a
               href={profile.github}
@@ -138,8 +261,10 @@ const ProfileCard: React.FC = () => {
           </div>
         </div>
       </div>
+          </div>
+        );
+      })()}
       </div>
-    </div>
   );
 };
 
