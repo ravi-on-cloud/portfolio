@@ -29,9 +29,10 @@ const navItems: NavItem[] = [
     id="main-nav"
     class="fixed left-1/2 -translate-x-1/2 z-[100] bg-[var(--background)] border border-1 border-transparent backdrop-blur-xl transition-all duration-500 ease-in-out md:top-6 md:bottom-auto bottom-0 w-[80%]"
   >
-    <div class="container mx-auto flex justify-center items-center p-3">
+    <div class="container mx-auto flex justify-between items-center p-3">
+      <div class="mr-4 text-lg md:text-xl font-semibold tracking-wide select-none text-[var(--white)]">RP</div>
       <ul
-        class="flex w-full justify-between md:space-x-6 md:justify-center md:gap-12 gap-6"
+        class="flex flex-1 justify-between md:space-x-6 md:justify-center md:gap-12 gap-6"
       >
         {
           navItems.map((item) => (
@@ -51,6 +52,21 @@ const navItems: NavItem[] = [
           ))
         }
       </ul>
+      <div class="flex items-center gap-2">
+        <button
+          id="theme-toggle"
+          class="ml-2 p-2 rounded-lg border border-[var(--white-icon-tr)] text-[var(--white-icon)] hover:text-[var(--white)] hover:bg-[var(--white-icon-tr)] transition"
+          aria-label="Toggle theme"
+          title="Toggle theme"
+        >
+          <span class="sun hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6.76 4.84l-1.8-1.79L3.17 4.84l1.79 1.79 1.8-1.79zM1 13h3v-2H1v2zm10 10h2v-3h-2v3zM4.84 19.16l1.8 1.8 1.79-1.8-1.8-1.79-1.79 1.79zM20 11V9h-3v2h3zm-8-8h2V0h-2v3zm7.76 1.05l-1.79 1.79 1.79 1.79 1.79-1.79-1.79-1.79zM12 6a6 6 0 100 12A6 6 0 0012 6zm8 13h3v-2h-3v2z"/></svg>
+          </span>
+          <span class="moon hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21.64 13A9 9 0 1111 2.36 7 7 0 0021.64 13z"/></svg>
+          </span>
+        </button>
+      </div>
     </div>
   </nav>
 </div>
@@ -152,6 +168,26 @@ const navItems: NavItem[] = [
   });
 
   document.addEventListener("DOMContentLoaded", () => {
+    // Theme toggle setup
+    const root = document.documentElement;
+    const btn = document.getElementById("theme-toggle") as HTMLButtonElement | null;
+    const applyIcon = () => {
+      const t = root.getAttribute("data-theme") || "dark";
+      const sun = btn?.querySelector('.sun') as HTMLElement | null;
+      const moon = btn?.querySelector('.moon') as HTMLElement | null;
+      if (!sun || !moon) return;
+      if (t === "light") { sun.style.display = "inline"; moon.style.display = "none"; }
+      else { sun.style.display = "none"; moon.style.display = "inline"; }
+    };
+    applyIcon();
+    btn?.addEventListener("click", () => {
+      const current = root.getAttribute("data-theme") || "dark";
+      const next = current === "light" ? "dark" : "light";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch {}
+      applyIcon();
+    });
+
     const sections = document.querySelectorAll("section[id]");
     const navLinks = document.querySelectorAll("nav a[href^='#']");
     const observerOptions = { threshold: 0.6 };
@@ -186,5 +222,8 @@ const navItems: NavItem[] = [
 
   nav a.active {
     color: white !important;
+  }
+  html[data-theme="light"] nav a.active {
+    color: var(--white) !important;
   }
 </style>
